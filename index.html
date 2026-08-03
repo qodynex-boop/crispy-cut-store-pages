@@ -259,6 +259,10 @@
     .field label{font-size:12px;font-weight:900}
     .field input,.field textarea,.field select{border:1px solid var(--line);border-radius:13px;padding:11px 12px;outline:none;background:#fff}
     .field input:focus,.field textarea:focus{border-color:var(--pink);box-shadow:0 0 0 4px rgba(173,54,95,.09)}
+    .location-picker{border:1px solid var(--line);border-radius:16px;padding:13px;background:var(--pink-pale)}
+    .location-picker p{margin:8px 0;color:var(--muted);font-size:12px}
+    .location-map{display:none;margin-top:10px;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+    .location-map iframe{display:block;width:100%;height:210px;border:0}
     .modal-actions{display:flex;gap:10px;position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding-top:13px}
     .qty-large{display:flex;align-items:center;background:var(--pink-soft);border-radius:14px;padding:4px}
     .qty-large button{width:37px;height:37px;border:0;background:#fff;border-radius:10px;color:var(--pink-dark);display:grid;place-items:center}
@@ -640,6 +644,7 @@
             <div class="field"><label>رقم الهاتف</label><input name="phone" required inputmode="tel" placeholder="05xxxxxxxx"></div>
             <div class="field full"><label>طريقة الاستلام</label><select name="method"><option>توصيل</option><option>استلام من الفرع</option></select></div>
             <div class="field full"><label>مدينة التوصيل</label><select name="city" required><option value="" disabled selected>اختر المدينة</option><option value="أبها">أبها</option><option value="خميس مشيط">خميس مشيط</option></select></div>
+            <div class="field full location-picker"><label>موقع التوصيل الدقيق</label><button class="primary-action" type="button" id="locateCustomer">تحديد موقعي الحالي</button><p id="locationStatus">فعّل الموقع ثم اضغط الزر ليظهر موقعك على الخريطة.</p><input type="hidden" name="latitude" id="customerLatitude"><input type="hidden" name="longitude" id="customerLongitude"><input type="hidden" name="locationAccuracy" id="customerLocationAccuracy"><div class="location-map" id="locationMap" aria-label="معاينة موقع التوصيل"></div></div>
             <div class="field full"><label>العنوان داخل المدينة</label><textarea name="address" required rows="3" placeholder="الحي، الشارع، أقرب معلم"></textarea></div>
             <div class="field full"><label>ملاحظات الطلب</label><textarea name="notes" rows="2" placeholder="أي ملاحظات إضافية"></textarea></div>
           </div>
@@ -876,9 +881,37 @@ $("checkoutBtn").onclick = () => { closeOverlay("cartOverlay"); openOverlay("che
 $("closeCheckout").onclick = () => closeOverlay("checkoutOverlay");
 $("checkoutOverlay").onclick = e => { if (e.target === e.currentTarget) closeOverlay("checkoutOverlay"); };
 
+$("locateCustomer").onclick = () => {
+  const button = $("locateCustomer"), status = $("locationStatus");
+  if (!navigator.geolocation) { status.textContent = "تحديد الموقع غير مدعوم في هذا الجهاز."; return; }
+  button.disabled = true;
+  button.textContent = "جارٍ تحديد موقعك...";
+  navigator.geolocation.getCurrentPosition(position => {
+    const lat = position.coords.latitude.toFixed(6), lng = position.coords.longitude.toFixed(6);
+    $("customerLatitude").value = lat;
+    $("customerLongitude").value = lng;
+    $("customerLocationAccuracy").value = Math.round(position.coords.accuracy || 0);
+    status.textContent = `تم تحديد الموقع بدقة تقريبية ${Math.round(position.coords.accuracy || 0)} متر. حرّك موقعك في الهاتف ثم أعد التحديد إذا لزم.`;
+    const left = (+lng - .012).toFixed(6), right = (+lng + .012).toFixed(6), bottom = (+lat - .009).toFixed(6), top = (+lat + .009).toFixed(6);
+    $("locationMap").innerHTML = `<iframe title="موقع التوصيل" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat}%2C${lng}"></iframe>`;
+    $("locationMap").style.display = "block";
+    button.disabled = false;
+    button.textContent = "تحديث موقعي";
+  }, error => {
+    status.textContent = error.code === 1 ? "يرجى السماح للموقع باستخدام موقعك من إعدادات المتصفح." : "تعذر تحديد الموقع. تأكد من تشغيل GPS وحاول مجددًا.";
+    button.disabled = false;
+    button.textContent = "تحديد موقعي الحالي";
+  }, {enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+};
+
 $("checkoutForm").addEventListener("submit", async e => {
   e.preventDefault();
   if (!cart.length) return;
+  if (!$("customerLatitude").value || !$("customerLongitude").value) {
+    showToast("حدد موقع التوصيل على الخريطة أولًا.");
+    $("locateCustomer").focus();
+    return;
+  }
   const submitButton = e.target.querySelector('[type="submit"]');
   submitButton.disabled = true;
   submitButton.textContent = "جارٍ إرسال الطلب...";
