@@ -639,7 +639,8 @@
             <div class="field"><label>الاسم</label><input name="name" required placeholder="اسم العميل"></div>
             <div class="field"><label>رقم الهاتف</label><input name="phone" required inputmode="tel" placeholder="05xxxxxxxx"></div>
             <div class="field full"><label>طريقة الاستلام</label><select name="method"><option>توصيل</option><option>استلام من الفرع</option></select></div>
-            <div class="field full"><label>العنوان</label><textarea name="address" required rows="3" placeholder="الحي، الشارع، أقرب معلم"></textarea></div>
+            <div class="field full"><label>مدينة التوصيل</label><select name="city" required><option value="" disabled selected>اختر المدينة</option><option value="أبها">أبها</option><option value="خميس مشيط">خميس مشيط</option></select></div>
+            <div class="field full"><label>العنوان داخل المدينة</label><textarea name="address" required rows="3" placeholder="الحي، الشارع، أقرب معلم"></textarea></div>
             <div class="field full"><label>ملاحظات الطلب</label><textarea name="notes" rows="2" placeholder="أي ملاحظات إضافية"></textarea></div>
           </div>
           <div class="summary-row total" style="margin-top:18px"><span>إجمالي الطلب</span><strong id="checkoutTotal">0 ر.س</strong></div>
@@ -947,6 +948,6 @@ renderProducts();
 renderCart();
 bindProductButtons();
 restartSlider();
-</script>
+</script>
 </body>
 </html>
